@@ -77,9 +77,10 @@ class Forwarder:
                         forwarded_cnt += 1
 
             if new_messages_cnt:
+                new_urls = [entry.url for entry in feed.entries]
+                forwarded_urls.update(new_urls)
+                self.listener.store(forwarded_urls)
                 msg = f'Received {new_messages_cnt} new messages from {self.listener.url}, forwarded {forwarded_cnt}'
             else:
                 msg = f'No new messages from {self.listener.url}, nothing to do'
             logging.info(msg)
-
-            self.listener.store(feed)

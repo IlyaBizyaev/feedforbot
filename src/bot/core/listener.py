@@ -35,14 +35,11 @@ class Listener:
             stored_urls = [line[:-1] for line in f.readlines()]
         return stored_urls
 
-    def store(self, feed: Feed) -> int:
-        stored_urls = []
-        for entry in feed.entries:
-            stored_urls.append(entry.url)
+    def store(self, forwarded_urls: set) -> int:
         filename = make_filename(self.chat_id, self.url)
         with open(filename, 'w') as f:
-            f.writelines(line + '\n' for line in stored_urls)
-        return len(stored_urls)
+            f.writelines(line + '\n' for line in forwarded_urls)
+        return len(forwarded_urls)
 
     @property
     def feed(self):
