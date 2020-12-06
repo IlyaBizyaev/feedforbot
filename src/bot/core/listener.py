@@ -42,12 +42,10 @@ class Listener:
         stored_dict = self._feed_schema.dump(stored_dict)
 
         for raw_entry in stored_dict['entries']:
-            entry = FeedEntry(description=raw_entry['description'],
-                              published=raw_entry['published'],
+            entry = FeedEntry(published=raw_entry['published'],
                               title=raw_entry['title'],
                               url=raw_entry['url'],
                               author=raw_entry['author'],
-                              tags=raw_entry['tags'],
                               forwarded=raw_entry['forwarded'])
             stored_feed.entries.append(entry)
 

@@ -14,18 +14,10 @@ class Feed:
                  old_entries: List[FeedEntry] = None):
 
         for raw_entry in raw_entries:
-            tags = []
-
-            if 'tags' in raw_entry:
-                for tag in raw_entry['tags']:
-                    tags.append(tag['term'])
-
-            entry = FeedEntry(description=raw_entry.get('summary'),
-                              published=raw_entry.get('published'),
+            entry = FeedEntry(published=raw_entry.get('published'),
                               title=raw_entry.get('title'),
                               url=raw_entry.get('link') if 'link' in raw_entry else raw_entry.get('id'),
-                              author=raw_entry.get('author'),
-                              tags=', '.join(tags))
+                              author=raw_entry.get('author'))
 
             self.entries.append(entry)
 
