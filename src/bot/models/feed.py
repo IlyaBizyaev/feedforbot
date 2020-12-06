@@ -1,4 +1,3 @@
-from html import escape
 from typing import List, Dict
 
 from .feed_entry import FeedEntry
@@ -9,9 +8,7 @@ class Feed:
     def __init__(self):
         self.entries: List[FeedEntry] = list()
 
-    def from_raw(self,
-                 raw_entries: List[Dict],
-                 old_entries: List[FeedEntry] = None):
+    def from_raw(self, raw_entries: List[Dict]):
 
         for raw_entry in raw_entries:
             entry = FeedEntry(published=raw_entry.get('published'),
@@ -22,11 +19,5 @@ class Feed:
             self.entries.append(entry)
 
         self.entries.reverse()
-
-        if old_entries:
-            for raw_entry in self.entries:
-                for old_entry in old_entries:
-                    if old_entry.url == escape(raw_entry.url):
-                        raw_entry.forwarded = old_entry.forwarded
 
         return self.entries

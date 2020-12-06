@@ -6,4 +6,3 @@ class FeedEntrySchema(Schema):
     title = fields.Str(required=True, allow_none=True)
     url = fields.Str(required=True, allow_none=True)
     author = fields.Str(required=True, allow_none=True)
-    forwarded = fields.Bool(required=True)

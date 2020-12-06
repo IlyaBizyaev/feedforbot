@@ -9,8 +9,6 @@ class FeedEntry:
     url: str
     author: str
 
-    forwarded: bool = False
-
     def __post_init__(self):
         self.author = escape(self.author) if self.author else None
         # TODO rewrite from str to datetime type

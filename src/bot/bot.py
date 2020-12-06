@@ -1,14 +1,33 @@
 import asyncio
 from asyncio.events import AbstractEventLoop
-import logging
-from json import load as json_load
 from typing import List
 
-from redis import ConnectionPool, Redis
 from yaml import safe_load as yaml_load
 
 from .core import Settings, Listener, Forwarder
 from .schemas import ListenerSchema
+
+
+def read_listeners(path: str):
+    listeners = []
+
+    with open(path, 'r') as _f:
+        feeds_raw = _f.read()
+
+    listener_schema = ListenerSchema()
+    raw_listeners = yaml_load(feeds_raw)
+
+    for raw_listener in raw_listeners:
+        raw_listener = listener_schema.dump(raw_listener)
+
+        listener = Listener(url=raw_listener['url'],
+                            chat_id=raw_listener['id'],
+                            delay=raw_listener['delay'],
+                            post_format=raw_listener['format'])
+
+        listeners.append(listener)
+
+    return listeners
 
 
 class Bot(object):
@@ -19,9 +38,7 @@ class Bot(object):
 
         self.settings = settings
         self.loop = loop
-        self.redis_pool = ConnectionPool(host=self.settings.redis_host,
-                                         port=self.settings.redis_port)
-        self.listeners: List[Listener] = self.read_listeners(self.settings.feeds_path)
+        self.listeners: List[Listener] = read_listeners(self.settings.feeds_path)
 
     def __enter__(self):
         if not self.loop:
@@ -33,29 +50,6 @@ class Bot(object):
         self.loop.close()
         if exc_val:
             raise
-
-    def read_listeners(self, path: str):
-        listeners = list()
-
-        with open(path, 'r') as _f:
-            feeds_raw = _f.read()
-
-        listener_schema = ListenerSchema()
-        raw_listeners = json_load(feeds_raw) if feeds_raw.endswith('.json') else yaml_load(feeds_raw)
-
-        for raw_listener in raw_listeners:
-            raw_listener = listener_schema.dump(raw_listener)
-
-            listener = Listener(url=raw_listener['url'],
-                                id=raw_listener['id'],
-                                delay=raw_listener['delay'],
-                                preview=raw_listener['preview'],
-                                format=raw_listener['format'],
-                                redis_client=Redis(connection_pool=self.redis_pool))
-
-            listeners.append(listener)
-
-        return listeners
 
     def run(self):
         tasks = list()
