@@ -10,6 +10,9 @@ from .listener import Listener
 from ..models import FeedEntry
 
 
+MAX_CACHED_URLS = 1000
+
+
 class Forwarder:
 
     def __init__(self,
@@ -50,7 +53,7 @@ class Forwarder:
 
     async def listen(self):
         while True:
-            logging.debug(f'Check feed {self.listener.url} for user_id {self.listener.chat_id}')
+            logging.debug(f'Check feed {self.listener.url} for chat_id {self.listener.chat_id}')
 
             try:
                 await self.check()
@@ -60,27 +63,31 @@ class Forwarder:
                 await asyncio.sleep(self.listener.delay)
 
     async def check(self):
-        forwarded_urls = set(self.listener.stored_feed)
-        feed = self.listener.feed
+        loaded_feed = self.listener.feed
 
-        new_messages_cnt = 0
-        forwarded_cnt = 0
-
-        if not feed.entries:
+        if not loaded_feed.entries:
             logging.info(f'Got empty feed from "{self.listener.url}"')
         else:
-            for entry in feed.entries:
-                if entry.url not in forwarded_urls:
-                    new_messages_cnt += 1
-                    result = self.send_entry(entry)
-                    if result:
-                        forwarded_cnt += 1
+            stored_urls = self.listener.stored_feed
+            stored_urls_set = set(stored_urls)
 
-            if new_messages_cnt:
-                new_urls = [entry.url for entry in feed.entries]
-                forwarded_urls.update(new_urls)
-                self.listener.store(forwarded_urls)
-                msg = f'Received {new_messages_cnt} new messages from {self.listener.url}, forwarded {forwarded_cnt}'
-            else:
+            new_urls = []
+            failed_urls = []
+
+            for entry in loaded_feed.entries:
+                if entry.url not in stored_urls_set:
+                    new_urls.append(entry.url)
+                    if not self.send_entry(entry):
+                        failed_urls.append(entry.url)
+
+            if not new_urls:
                 msg = f'No new messages from {self.listener.url}, nothing to do'
+            else:
+                self.listener.store((stored_urls + new_urls)[-MAX_CACHED_URLS:])
+                msg = f'Received {len(new_urls)} new entries from {self.listener.url}, '
+                if failed_urls:
+                    msg += f'failed to forward: {failed_urls}.'
+                else:
+                    msg += 'forwarded all.'
+
             logging.info(msg)

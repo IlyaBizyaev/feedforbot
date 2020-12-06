@@ -35,7 +35,7 @@ class Listener:
             stored_urls = [line[:-1] for line in f.readlines()]
         return stored_urls
 
-    def store(self, forwarded_urls: set) -> int:
+    def store(self, forwarded_urls: [str]) -> int:
         filename = make_filename(self.chat_id, self.url)
         with open(filename, 'w') as f:
             f.writelines(line + '\n' for line in forwarded_urls)
