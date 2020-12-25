@@ -5,16 +5,35 @@ from string import Template
 from typing import Optional
 
 from requests import request
+from urllib.parse import urlparse
 
 from .listener import Listener
 from ..models import FeedEntry
 
 
 MAX_CACHED_URLS = 1000
+WWW_PREFIX = 'www.'
+COMMON_SUFFIXES = ['htm', 'html']
+
+
+def normalize_url(url_str: str) -> str:
+    url = urlparse(url_str)
+    post_part = url.path.rstrip('/').lstrip('/')
+    # Some blogs use queries as post addresses.
+    if not post_part and url.query:
+        post_part = '?' + url.query
+    # This intentionally does not include the scheme.
+    result = url.netloc + '/' + post_part
+    # Drop some other common bits.
+    if result.startswith(WWW_PREFIX):
+        result = result[len(WWW_PREFIX):]
+    ext_split = result.rsplit('.', 1)
+    if ext_split[1] in COMMON_SUFFIXES:
+        result = ext_split[0]
+    return result
 
 
 class Forwarder:
-
     def __init__(self,
                  tg_token: str,
                  tg_proxy: Optional[str],
@@ -40,7 +59,6 @@ class Forwarder:
             logging.warning(err)
 
     def send_entry(self, entry: FeedEntry):
-
         template_dict = asdict(entry)
         output = Template(self.listener.post_format).safe_substitute(template_dict)
         logging.debug(f'Send to "{self.listener.chat_id}": "{output}"')
@@ -75,10 +93,11 @@ class Forwarder:
             failed_urls = []
 
             for entry in loaded_feed.entries:
-                if entry.url not in stored_urls_set:
-                    new_urls.append(entry.url)
+                normalized_entry_url = normalize_url(entry.url)
+                if normalized_entry_url not in stored_urls_set:
+                    new_urls.append(normalized_entry_url)
                     if not self.send_entry(entry):
-                        failed_urls.append(entry.url)
+                        failed_urls.append(normalized_entry_url)
 
             if not new_urls:
                 msg = f'No new messages from {self.listener.url}, nothing to do'
